@@ -1,0 +1,7 @@
+streamlit
+tensorflow
+tensorflow_hub
+pillow
+pandas
+numpy
+requests
