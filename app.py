@@ -5,10 +5,12 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from PIL import Image
+import requests
+import tempfile
 
 st.set_page_config(page_title="Indonesian Food Classifier", layout="wide")
 
-# ===== CSS untuk tampilan bersih dan modern =====
+# ===== CSS untuk tampilan =====
 st.markdown("""
     <style>
     .block-container {
@@ -42,10 +44,12 @@ st.markdown('<div class="big-title">🍽️ Food Recognition AI – Indonesian C
 
 @st.cache_resource
 def load_model():
-    model = tf.keras.models.load_model(
-        r'C:/Users/ASUS/Documents/tugasakhir/streamlite/model_food.h5',
-        custom_objects={'KerasLayer': hub.KerasLayer}
-    )
+    model_url = "https://github.com/DedeUlfah/Food_classifier_streamlit/raw/main/model_food.h5"
+    response = requests.get(model_url)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".h5") as tmp:
+        tmp.write(response.content)
+        tmp.flush()
+        model = tf.keras.models.load_model(tmp.name, custom_objects={'KerasLayer': hub.KerasLayer})
     return model
 
 def predict_image(model, image):
@@ -56,13 +60,15 @@ def predict_image(model, image):
     return np.argmax(predictions)
 
 def get_recipe(predicted_class, class_names):
-    df = pd.read_csv(r'C:/Users/ASUS/Documents/tugasakhir/streamlite/data_resep.csv', delimiter=';')
+    url = "https://raw.githubusercontent.com/DedeUlfah/Food_classifier_streamlit/main/data_resep.csv"
+    df = pd.read_csv(url, delimiter=';')
     food_name = class_names[predicted_class].lower()
     result = df[df['food_name'].str.lower() == food_name].iloc[0]
     return result['ingredient'], result['step']
 
 def get_nutrition(predicted_class, class_names):
-    df = pd.read_csv(r'C:/Users/ASUS/Documents/tugasakhir/streamlite/total_nutrition_per_food.csv')
+    url = "https://raw.githubusercontent.com/DedeUlfah/Food_classifier_streamlit/main/total_nutrition_per_food.csv"
+    df = pd.read_csv(url)
     food_name = class_names[predicted_class].lower()
     return df[df['food_name'].str.lower() == food_name].iloc[0]
 
@@ -80,8 +86,6 @@ def main():
 
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
-
-        # Tampilkan gambar di tengah
         st.markdown('<div class="center-image">', unsafe_allow_html=True)
         st.image(image, use_column_width=False)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -97,7 +101,6 @@ def main():
         st.markdown(f"<h2 style='text-align:center;'>🍰 Prediksi: <span style='color:#d17b0f;'>{food_name}</span></h2>", unsafe_allow_html=True)
 
         col1, col2 = st.columns(2)
-
         with col1:
             st.markdown('<div class="section-box"><h4>🧾 Bahan-Bahan</h4>', unsafe_allow_html=True)
             st.write(ingredients)
